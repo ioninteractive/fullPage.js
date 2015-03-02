@@ -1,13 +1,15 @@
 /**
- * fullPage 2.5.7
+ * fullPage 2.5.9
  * https://github.com/alvarotrigo/fullPage.js
  * MIT licensed
  *
  * Copyright (C) 2015 alvarotrigo.com - A project by Alvaro Trigo
  */
 
-(function($) {
+(function($, window, document, Math, undefined) {
+	'use strict';
 	$.fn.fullpage = function(options) {
+		var FP = $.fn.fullpage;
 		// Create some defaults, extending them with any options that were provided
 		options = $.extend({
 			//navigation
@@ -15,7 +17,6 @@
 			'anchors':[],
 			'navigation': false,
 			'navigationPosition': 'right',
-			'navigationColor': '#000',
 			'navigationTooltips': [],
 			'slidesNavigation': false,
 			'slidesNavPosition': 'bottom',
@@ -25,6 +26,7 @@
 			'css3': true,
 			'scrollingSpeed': 700,
 			'autoScrolling': true,
+			'fitToSection': true,
 			'easing': 'easeInOutCubic',
 			'easingcss3': 'ease',
 			'loopBottom': false,
@@ -44,8 +46,8 @@
 			//design
 			'controlArrows': true,
 			'controlArrowColor': '#fff',
-			"verticalCentered": true,
-			'resize': true,
+			'verticalCentered': true,
+			'resize': false,
 			'sectionsColor' : [],
 			'paddingTop': 0,
 			'paddingBottom': 0,
@@ -71,16 +73,12 @@
 
 
 		//easeInOutCubic animation included in the plugin
-		$.extend($.easing,{ easeInOutCubic: function (x, t, b, c, d) {
-			if ((t/=d/2) < 1) return c/2*t*t*t + b;
-			return c/2*((t-=2)*t*t + 2) + b;
-		}});
+		$.extend($.easing,{ easeInOutCubic: function (x, t, b, c, d) {if ((t/=d/2) < 1) return c/2*t*t*t + b;return c/2*((t-=2)*t*t + 2) + b;}});
 
 		//TO BE REMOVED in future versions. Maintained temporaly for backwards compatibility.
-		//easeInQuart animation included in the plugin
 		$.extend($.easing,{ easeInQuart: function (x, t, b, c, d) { return c*(t/=d)*t*t*t + b; }});
 
-		$.fn.fullpage.setAutoScrolling = function(value, type){
+		FP.setAutoScrolling = function(value, type){
 			setVariableState('autoScrolling', value, type);
 
 			var element = $('.fp-section.active');
@@ -91,7 +89,7 @@
 					'height' : '100%'
 				});
 
-				$.fn.fullpage.setRecordHistory(options.recordHistory, 'internal');
+				FP.setRecordHistory(options.recordHistory, 'internal');
 
 				//for IE touch devices
 				container.css({
@@ -110,7 +108,7 @@
 					'height' : 'initial'
 				});
 
-				$.fn.fullpage.setRecordHistory(false, 'internal');
+				FP.setRecordHistory(false, 'internal');
 
 				//for IE touch devices
 				container.css({
@@ -131,21 +129,28 @@
 		/**
 		* Defines wheter to record the history for each hash change in the URL.
 		*/
-		$.fn.fullpage.setRecordHistory = function(value, type){
+		FP.setRecordHistory = function(value, type){
 			setVariableState('recordHistory', value, type);
 		};
 
 		/**
 		* Defines the scrolling speed
 		*/
-		$.fn.fullpage.setScrollingSpeed = function(value, type){
+		FP.setScrollingSpeed = function(value, type){
 			setVariableState('scrollingSpeed', value, type);
+		};
+
+		/**
+		* Sets fitToSection
+		*/
+		FP.setFitToSection = function(value, type){
+			setVariableState('fitToSection', value, type);
 		};
 
 		/**
 		* Adds or remove the possiblity of scrolling through sections by using the mouse wheel or the trackpad.
 		*/
-		$.fn.fullpage.setMouseWheelScrolling = function (value){
+		FP.setMouseWheelScrolling = function (value){
 			if(value){
 				addMouseWheelHandler();
 			}else{
@@ -159,7 +164,7 @@
 		*
 		* @param directions string containing the direction or directions separated by comma.
 		*/
-		$.fn.fullpage.setAllowScrolling = function (value, directions){
+		FP.setAllowScrolling = function (value, directions){
 			if(typeof directions != 'undefined'){
 				directions = directions.replace(' ', '').split(',');
 				$.each(directions, function (index, direction){
@@ -167,10 +172,10 @@
 				});
 			}
 			else if(value){
-				$.fn.fullpage.setMouseWheelScrolling(true);
+				FP.setMouseWheelScrolling(true);
 				addTouchHandler();
 			}else{
-				$.fn.fullpage.setMouseWheelScrolling(false);
+				FP.setMouseWheelScrolling(false);
 				removeTouchHandler();
 			}
 		};
@@ -178,11 +183,11 @@
 		/**
 		* Adds or remove the possiblity of scrolling through sections by using the keyboard arrow keys
 		*/
-		$.fn.fullpage.setKeyboardScrolling = function (value){
+		FP.setKeyboardScrolling = function (value){
 			options.keyboardScrolling = value;
 		};
 
-		$.fn.fullpage.moveSectionUp = function(){
+		FP.moveSectionUp = function(){
 			var prev = $('.fp-section.active').prev('.fp-section');
 
 			//looping to the bottom if there's no more sections above
@@ -195,7 +200,7 @@
 			}
 		};
 
-		$.fn.fullpage.moveSectionDown = function (){
+		FP.moveSectionDown = function (){
 			var next = $('.fp-section.active').next('.fp-section');
 
 			//looping to the top if there's no more sections below
@@ -209,7 +214,7 @@
 			}
 		};
 
-		$.fn.fullpage.moveTo = function (section, slide){
+		FP.moveTo = function (section, slide){
 			var destiny = '';
 
 			if(isNaN(section)){
@@ -225,18 +230,18 @@
 			}
 		};
 
-		$.fn.fullpage.moveSlideRight = function(){
+		FP.moveSlideRight = function(){
 			moveSlide('next');
 		};
 
-		$.fn.fullpage.moveSlideLeft = function(){
+		FP.moveSlideLeft = function(){
 			moveSlide('prev');
 		};
 
 		/**
 		 * When resizing is finished, we adjust the slides sizes and positions
 		 */
-		$.fn.fullpage.reBuild = function(resizing){
+		FP.reBuild = function(resizing){
 			if(container.hasClass('fp-destroyed')){ return; }  //nothing to do if the plugin was destroyed
 
 			isResizing = true;
@@ -307,7 +312,8 @@
 		var isScrollAllowed = { 'up':true, 'down':true, 'left':true, 'right':true };
 		var originals = $.extend(true, {}, options); //deep copy
 
-		$.fn.fullpage.setAllowScrolling(true);
+		FP.setAllowScrolling(true);
+		container.removeClass('fp-destroyed'); //in case it was destroyed before initilizing it again
 
 		//if css3 is not supported, it will use jQuery animations
 		if(options.css3){
@@ -326,7 +332,7 @@
 
 		//trying to use fullpage without a selector?
 		else{
-			showError('error', "Error! Fullpage.js needs to be initialized with a selector. For example: $('#myContainer').fullpage();");
+			showError('error', 'Error! Fullpage.js needs to be initialized with a selector. For example: $(\'#myContainer\').fullpage();');
 		}
 
 		//adding internal class names to void problem with common ones
@@ -364,6 +370,11 @@
 
 			if (typeof options.anchors[index] !== 'undefined') {
 				$(this).attr('data-anchor', options.anchors[index]);
+
+				//activating the menu / nav element on load
+				if($(this).hasClass('active')){
+					activateMenuAndNav(options.anchors[index], index);
+				}
 			}
 
 			// if there's any slide
@@ -411,7 +422,7 @@
 			}
 
 		}).promise().done(function(){
-			$.fn.fullpage.setAutoScrolling(options.autoScrolling, 'internal');
+			FP.setAutoScrolling(options.autoScrolling, 'internal');
 
 			//the starting point is a slide?
 			var activeSlide = $('.fp-section.active').find('.fp-slide.active');
@@ -438,7 +449,7 @@
 			}
 
 			if(options.scrollOverflow){
-				if(document.readyState === "complete"){
+				if(document.readyState === 'complete'){
 					createSlimScrollingHandler();
 				}
 				//after DOM and images are loaded
@@ -468,7 +479,6 @@
 						//scrolling the page to the section with no animation
 						$('html, body').scrollTop(section.position().top);
 					}
-
 					activateMenuAndNav(destiny, null);
 
 					$.isFunction( options.afterLoad ) && options.afterLoad.call( section, destiny, (section.index('.fp-section') + 1));
@@ -509,7 +519,6 @@
 			$('body').append('<div id="fp-nav"><ul></ul></div>');
 			nav = $('#fp-nav');
 
-			nav.css('color', options.navigationColor);
 			nav.addClass(options.navigationPosition);
 
 			for (var i = 0; i < $('.fp-section').length; i++) {
@@ -522,7 +531,8 @@
 
 				// Only add tooltip if needed (defined by user)
 				var tooltip = options.navigationTooltips[i];
-				if (tooltip !== undefined && tooltip != '') {
+
+				if (typeof tooltip !== 'undefined' && tooltip !== '') {
 					li += '<div class="fp-tooltip ' + options.navigationPosition + '">' + tooltip + '</div>';
 				}
 
@@ -561,20 +571,23 @@
 			if(!options.autoScrolling || options.scrollBar){
 				var currentScroll = $(window).scrollTop();
 				var visibleSectionIndex = 0;
-				var initial = Math.abs(currentScroll - $('.fp-section').first().offset().top);
+				var initial = Math.abs(currentScroll - document.getElementsByClassName('fp-section')[0].offsetTop);
 
 				//taking the section which is showing more content in the viewport
-				$('.fp-section').each(function(index){
-					var current = Math.abs(currentScroll - $(this).offset().top);
+				var sections =  document.getElementsByClassName('fp-section');
+				for (var i = 0; i < sections.length; ++i) {
+					var section = sections[i];
+
+					var current = Math.abs(currentScroll - section.offsetTop);
 
 					if(current < initial){
-						visibleSectionIndex = index;
+						visibleSectionIndex = i;
 						initial = current;
 					}
-				});
+				}
 
 				//geting the last one, the current one on the screen
-				currentSection = $('.fp-section').eq(visibleSectionIndex);
+				currentSection = $(sections).eq(visibleSectionIndex);
 			}
 
 			if(!options.autoScrolling || options.scrollBar){
@@ -593,9 +606,9 @@
 						var slideIndex = activeSlide.index();
 					}
 
-					currentSection.addClass('active').siblings().removeClass('active');
-
 					if(canScroll){
+						currentSection.addClass('active').siblings().removeClass('active');
+
 						$.isFunction( options.onLeave ) && options.onLeave.call( leavingSection, leavingSectionIndex, sectionIndex, yMovement);
 
 						$.isFunction( options.afterLoad ) && options.afterLoad.call( currentSection, anchorLink, sectionIndex);
@@ -616,23 +629,23 @@
 						isScrolling = false;
 					}, 100);
 				}
-			}
 
-			if(options.scrollBar){
-				//for the auto adjust of the viewport to fit a whole section
-				clearTimeout(scrollId2);
+				if(options.fitToSection){
+					//for the auto adjust of the viewport to fit a whole section
+					clearTimeout(scrollId2);
 
-				scrollId2 = setTimeout(function(){
-					if(canScroll){
-						//allows to scroll to an active section and
-						//if the section is already active, we prevent firing callbacks
-						if($('.fp-section.active').is(currentSection)){
-							isResizing = true;
+					scrollId2 = setTimeout(function(){
+						if(canScroll){
+							//allows to scroll to an active section and
+							//if the section is already active, we prevent firing callbacks
+							if($('.fp-section.active').is(currentSection)){
+								isResizing = true;
+							}
+							scrollPage(currentSection);
+							isResizing = false;
 						}
-						scrollPage(currentSection);
-						isResizing = false;
-					}
-				}, 1000);
+					}, 1000);
+				}
 			}
 		}
 
@@ -661,10 +674,10 @@
 
 			if(type == 'down'){
 				check = 'bottom';
-				scrollSection = $.fn.fullpage.moveSectionDown;
+				scrollSection = FP.moveSectionDown;
 			}else{
 				check = 'top';
-				scrollSection = $.fn.fullpage.moveSectionUp;
+				scrollSection = FP.moveSectionUp;
 			}
 
 			if(scrollable.length > 0 ){
@@ -719,11 +732,11 @@
 						if (Math.abs(touchStartX - touchEndX) > ($(window).width() / 100 * options.touchSensitivity)) {
 							if (touchStartX > touchEndX) {
 								if(isScrollAllowed.right){
-									$.fn.fullpage.moveSlideRight(); //next
+									FP.moveSlideRight(); //next
 								}
 							} else {
 								if(isScrollAllowed.left){
-									$.fn.fullpage.moveSlideLeft(); //prev
+									FP.moveSlideLeft(); //prev
 								}
 							}
 						}
@@ -780,8 +793,8 @@
 			var e = event.originalEvent;
 
 			//stopping the auto scroll to adjust to a section
-			if(options.scrollBar){
-				$("html,body").stop();
+			if(options.fitToSection){
+				$('html,body').stop();
 			}
 
 			if(isReallyTouch(e)){
@@ -811,20 +824,19 @@
 		 * http://www.sitepoint.com/html5-javascript-mouse-wheel/
 		 */
 		function MouseWheelHandler(e) {
-			var curTime = new Date().getTime();
-
 			if(options.autoScrolling){
 				// cross-browser wheel delta
 				e = window.event || e;
 				var value = e.wheelDelta || -e.deltaY || -e.detail;
 				var delta = Math.max(-1, Math.min(1, value));
 
-				//keeping record of the previous scrollings
 
 				//Limiting the array to 150 (lets not waist memory!)
 				if(scrollings.length > 149){
 					scrollings.shift();
 				}
+
+				//keeping record of the previous scrollings
 				scrollings.push(Math.abs(value));
 
 				//preventing to scroll the site on mouse wheel when scrollbar is present
@@ -855,9 +867,9 @@
 				return false;
 			}
 
-			if(options.scrollBar){
+			if(options.fitToSection){
 				//stopping the auto scroll to adjust to a section
-				$("html,body").stop();
+				$('html,body').stop();
 			}
 		}
 
@@ -911,7 +923,7 @@
 		*/
 		function scrollPage(element, callback, isMovementUp){
 			var dest = element.position();
-			if(typeof dest === "undefined"){ return; } //there's no element to scroll, leaving the function
+			if(typeof dest === 'undefined'){ return; } //there's no element to scroll, leaving the function
 
 			//local variables
 			var v = {
@@ -988,8 +1000,8 @@
 				var scrollSettings = getScrollSettings(v);
 
 				$(scrollSettings.element).animate(
-					scrollSettings.options
-				, options.scrollingSpeed, options.easing).promise().done(function () { //only one single callback in case of animating  `html, body`
+					scrollSettings.options,
+				options.scrollingSpeed, options.easing).promise().done(function () { //only one single callback in case of animating  `html, body`
 					afterSectionLoads(v);
 				});
 			}
@@ -1019,11 +1031,11 @@
 			// Scrolling down
 			if (!v.isMovementUp) {
 				// Move all previous sections to after the active section
-				$(".fp-section.active").after(v.activeSection.prevAll(".fp-section").get().reverse());
+				$('.fp-section.active').after(v.activeSection.prevAll('.fp-section').get().reverse());
 			}
 			else { // Scrolling up
 				// Move all next sections to before the active section
-				$(".fp-section.active").before(v.activeSection.nextAll(".fp-section"));
+				$('.fp-section.active').before(v.activeSection.nextAll('.fp-section'));
 			}
 
 			// Maintain the displayed position (now that we changed the element order)
@@ -1130,67 +1142,68 @@
 		function keydownHandler(e) {
 			clearTimeout(keydownId);
 
-			keydownId = setTimeout(function(){
-				onkeydown(e);
-			},150);
+			var activeElement = $(document.activeElement);
+
+			if(!activeElement.is('textarea') && !activeElement.is('input') && !activeElement.is('select') &&
+				options.keyboardScrolling && options.autoScrolling){
+				var keyCode = e.which;
+
+				//preventing the scroll with arrow keys & spacebar & Page Up & Down keys
+				var keyControls = [40, 38, 32, 33, 34];
+				if(keyControls.indexOf(keyCode) > -1){
+						e.preventDefault();
+				}
+
+				keydownId = setTimeout(function(){
+					onkeydown(e);
+				},150);
+			}
 		}
 
 		function onkeydown(e){
 			var shiftPressed = e.shiftKey;
 
-			var activeElement = $(document.activeElement);
+			switch (e.which) {
+				//up
+				case 38:
+				case 33:
+					FP.moveSectionUp();
+					break;
 
-			if(!activeElement.is("textarea") && !activeElement.is("input") && !activeElement.is("select") &&
-				options.keyboardScrolling && options.autoScrolling){
-
-				//preventing the scroll with arrow keys & spacebar
-				if(e.which == 40 || e.which == 38 || e.which == 32){
-					e.preventDefault();
-				}
-
-				switch (e.which) {
-					//up
-					case 38:
-					case 33:
-						$.fn.fullpage.moveSectionUp();
+				//down
+				case 32: //spacebar
+					if(shiftPressed){
+						FP.moveSectionUp();
 						break;
+					}
+				case 40:
+				case 34:
+					FP.moveSectionDown();
+					break;
 
-					//down
-					case 32: //spacebar
-						if(shiftPressed){
-							$.fn.fullpage.moveSectionUp();
-							break;
-						}
-					case 40:
-					case 34:
-						$.fn.fullpage.moveSectionDown();
-						break;
+				//Home
+				case 36:
+					FP.moveTo(1);
+					break;
 
-					//Home
-					case 36:
-						$.fn.fullpage.moveTo(1);
-						break;
+				//End
+				case 35:
+					FP.moveTo( $('.fp-section').length );
+					break;
 
-					//End
-					case 35:
-						$.fn.fullpage.moveTo( $('.fp-section').length );
-						break;
+				//left
+				case 37:
+					FP.moveSlideLeft();
+					break;
 
-					//left
-					case 37:
-						$.fn.fullpage.moveSlideLeft();
-						break;
+				//right
+				case 39:
+					FP.moveSlideRight();
+					break;
 
-					//right
-					case 39:
-						$.fn.fullpage.moveSlideRight();
-						break;
-
-					default:
-						return; // exit this handler for other keys
-				}
+				default:
+					return; // exit this handler for other keys
 			}
-
 		}
 
 		//binding the mousemove when the mouse's middle button is released
@@ -1198,7 +1211,7 @@
 			//middle button
 			if (e.which == 2){
 				oldPageY = e.pageY;
-				container.on("mousemove", mouseMoveHandler);
+				container.on('mousemove', mouseMoveHandler);
 			}
 		});
 
@@ -1206,7 +1219,7 @@
 		container.mouseup(function(e){
 			//middle button
 			if (e.which == 2){
-				container.off("mousemove");
+				container.off('mousemove');
 			}
 		});
 
@@ -1219,12 +1232,11 @@
 			// moving up
 			if(canScroll){
 				if (e.pageY < oldPageY){
-					$.fn.fullpage.moveSectionUp();
-
+					FP.moveSectionUp();
 
 				// moving downw
 				}else if(e.pageY > oldPageY){
-					$.fn.fullpage.moveSectionDown();
+					FP.moveSectionDown();
 				}
 			}
 			oldPageY = e.pageY;
@@ -1252,11 +1264,11 @@
 
 		if(options.normalScrollElements){
 			$(document).on('mouseenter', options.normalScrollElements, function () {
-				$.fn.fullpage.setMouseWheelScrolling(false);
+				FP.setMouseWheelScrolling(false);
 			});
 
 			$(document).on('mouseleave', options.normalScrollElements, function(){
-				$.fn.fullpage.setMouseWheelScrolling(true);
+				FP.setMouseWheelScrolling(true);
 			});
 		}
 
@@ -1265,9 +1277,9 @@
 		 */
 		$('.fp-section').on('click touchstart', '.fp-controlArrow', function() {
 			if ($(this).hasClass('fp-prev')) {
-				$.fn.fullpage.moveSlideLeft();
+				FP.moveSlideLeft();
 			} else {
-				$.fn.fullpage.moveSlideRight();
+				FP.moveSlideRight();
 			}
 		});
 
@@ -1308,7 +1320,7 @@
 
 			if(!options.loopHorizontal && options.controlArrows){
 				//hidding it for the fist slide, showing for the rest
-				section.find('.fp-controlArrow.fp-prev').toggle(slideIndex!=0);
+				section.find('.fp-controlArrow.fp-prev').toggle(slideIndex!==0);
 
 				//hidding it for the last slide, showing for the rest
 				section.find('.fp-controlArrow.fp-next').toggle(!destiny.is(':last-child'));
@@ -1363,12 +1375,12 @@
 				var activeElement = $(document.activeElement);
 
 				//if the keyboard is NOT visible
-				if (!activeElement.is("textarea") && !activeElement.is("input") && !activeElement.is("select")) {
+				if (!activeElement.is('textarea') && !activeElement.is('input') && !activeElement.is('select')) {
 					var currentHeight = $(window).height();
 
 					//making sure the change in the viewport size is enough to force a rebuild. (20 % of the window to avoid problems when hidding scroll bars)
 					if( Math.abs(currentHeight - previousHeight) > (20 * Math.max(previousHeight, currentHeight) / 100) ){
-						$.fn.fullpage.reBuild(true);
+						FP.reBuild(true);
 						previousHeight = currentHeight;
 					}
 				}
@@ -1378,7 +1390,7 @@
 				clearTimeout(resizeId);
 
 				resizeId = setTimeout(function(){
-					$.fn.fullpage.reBuild(true);
+					FP.reBuild(true);
 				}, 500);
 			}
 		}
@@ -1392,12 +1404,14 @@
 				var isResponsive = container.hasClass('fp-responsive');
 				if ($(window).width() < options.responsive ){
 					if(!isResponsive){
-						$.fn.fullpage.setAutoScrolling(false, 'internal');
+						FP.setAutoScrolling(false, 'internal');
+						FP.setFitToSection(false, 'internal');
 						$('#fp-nav').hide();
 						container.addClass('fp-responsive');
 					}
 				}else if(isResponsive){
-					$.fn.fullpage.setAutoScrolling(originals.autoScrolling, 'internal');
+					FP.setAutoScrolling(originals.autoScrolling, 'internal');
+					FP.setFitToSection(originals.autoScrolling, 'internal');
 					$('#fp-nav').show();
 					container.removeClass('fp-responsive');
 				}
@@ -1438,9 +1452,9 @@
 				var percentage = Math.min(heightPercentage, widthPercentage);
 				var newFontSize = percentage.toFixed(2);
 
-				$("body").css("font-size", newFontSize + '%');
+				$('body').css('font-size', newFontSize + '%');
 			} else {
-				$("body").css("font-size", '100%');
+				$('body').css('font-size', '100%');
 			}
 		}
 
@@ -1735,7 +1749,7 @@
 			}else{
 				//Mobile Chrome doesn't work the normal way, so... lets use HTML5 for phones :)
 				if(isTouchDevice || isTouch){
-					history.replaceState(undefined, undefined, "#" + url);
+					history.replaceState(undefined, undefined, '#' + url);
 				}else{
 					var baseUrl = window.location.href.split('#')[0];
 					window.location.replace( baseUrl + '#' + url );
@@ -1751,10 +1765,10 @@
 			text = text.replace('/', '-').replace('#','');
 
 			//removing previous anchor classes
-			$("body")[0].className = $("body")[0].className.replace(/\b\s?fp-viewing-[^\s]+\b/g, '');
+			$('body')[0].className = $('body')[0].className.replace(/\b\s?fp-viewing-[^\s]+\b/g, '');
 
 			//adding the current anchor
-			$("body").addClass("fp-viewing-" + text);
+			$('body').addClass('fp-viewing-' + text);
 		}
 
 		/**
@@ -1778,14 +1792,14 @@
 
 			for (var t in transforms) {
 				if (el.style[t] !== undefined) {
-					el.style[t] = "translate3d(1px,1px,1px)";
+					el.style[t] = 'translate3d(1px,1px,1px)';
 					has3d = window.getComputedStyle(el).getPropertyValue(transforms[t]);
 				}
 			}
 
 			document.body.removeChild(el);
 
-			return (has3d !== undefined && has3d.length > 0 && has3d !== "none");
+			return (has3d !== undefined && has3d.length > 0 && has3d !== 'none');
 		}
 
 
@@ -1799,7 +1813,7 @@
 				document.removeEventListener('mousewheel', MouseWheelHandler, false); //IE9, Chrome, Safari, Oper
 				document.removeEventListener('wheel', MouseWheelHandler, false); //Firefox
 			} else {
-				document.detachEvent("onmousewheel", MouseWheelHandler); //IE 6/7/8
+				document.detachEvent('onmousewheel', MouseWheelHandler); //IE 6/7/8
 			}
 		}
 
@@ -1810,10 +1824,10 @@
 		*/
 		function addMouseWheelHandler(){
 			if (document.addEventListener) {
-				document.addEventListener("mousewheel", MouseWheelHandler, false); //IE9, Chrome, Safari, Oper
-				document.addEventListener("wheel", MouseWheelHandler, false); //Firefox
+				document.addEventListener('mousewheel', MouseWheelHandler, false); //IE9, Chrome, Safari, Oper
+				document.addEventListener('wheel', MouseWheelHandler, false); //Firefox
 			} else {
-				document.attachEvent("onmousewheel", MouseWheelHandler); //IE 6/7/8
+				document.attachEvent('onmousewheel', MouseWheelHandler); //IE 6/7/8
 			}
 		}
 
@@ -1854,12 +1868,12 @@
 
 			//IE >= 11 & rest of browsers
 			if(window.PointerEvent){
-				pointer = { down: "pointerdown", move: "pointermove"};
+				pointer = { down: 'pointerdown', move: 'pointermove'};
 			}
 
 			//IE < 11
 			else{
-				pointer = { down: "MSPointerDown", move: "MSPointerMove"};
+				pointer = { down: 'MSPointerDown', move: 'MSPointerMove'};
 			}
 
 			return pointer;
@@ -1878,9 +1892,9 @@
 		}
 
 		function silentLandscapeScroll(activeSlide){
-			$.fn.fullpage.setScrollingSpeed (0, 'internal');
+			FP.setScrollingSpeed (0, 'internal');
 			landscapeScroll(activeSlide.closest('.fp-slides'), activeSlide);
-			$.fn.fullpage.setScrollingSpeed(originals.scrollingSpeed, 'internal');
+			FP.setScrollingSpeed(originals.scrollingSpeed, 'internal');
 		}
 
 		function silentScroll(top){
@@ -1892,7 +1906,7 @@
 				transformContainer(translate3d, false);
 			}
 			else {
-				container.css("top", -top);
+				container.css('top', -top);
 			}
 		}
 
@@ -1911,7 +1925,7 @@
 				case 'down': isScrollAllowed.down = value; break;
 				case 'left': isScrollAllowed.left = value; break;
 				case 'right': isScrollAllowed.right = value; break;
-				case 'all': $.fn.fullpage.setAllowScrolling(value);
+				case 'all': FP.setAllowScrolling(value);
 			}
 		}
 
@@ -1919,10 +1933,10 @@
 		/*
 		* Destroys fullpage.js plugin events and optinally its html markup and styles
 		*/
-		$.fn.fullpage.destroy = function(all){
-			$.fn.fullpage.setAutoScrolling(false, 'internal');
-			$.fn.fullpage.setAllowScrolling(false);
-			$.fn.fullpage.setKeyboardScrolling(false);
+		FP.destroy = function(all){
+			FP.setAutoScrolling(false, 'internal');
+			FP.setAllowScrolling(false);
+			FP.setKeyboardScrolling(false);
 			container.addClass('fp-destroyed');
 
 			$(window)
@@ -2014,17 +2028,17 @@
 			if (options.continuousVertical &&
 				(options.loopTop || options.loopBottom)) {
 				options.continuousVertical = false;
-				showError('warn', "Option `loopTop/loopBottom` is mutually exclusive with `continuousVertical`; `continuousVertical` disabled");
+				showError('warn', 'Option `loopTop/loopBottom` is mutually exclusive with `continuousVertical`; `continuousVertical` disabled');
 			}
 			if(options.continuousVertical && options.scrollBar){
 				options.continuousVertical = false;
-				showError('warn', "Option `scrollBar` is mutually exclusive with `continuousVertical`; `continuousVertical` disabled");
+				showError('warn', 'Option `scrollBar` is mutually exclusive with `continuousVertical`; `continuousVertical` disabled');
 			}
 
 			//anchors can not have the same value as any element ID or NAME
 			$.each(options.anchors, function(index, name){
 				if($('#' + name).length || $('[name="'+name+'"]').length ){
-					showError('error', "data-anchor tags can not have the same value as any `id` element on the site (or `name` element for IE).");
+					showError('error', 'data-anchor tags can not have the same value as any `id` element on the site (or `name` element for IE).');
 				}
 			});
 		}
@@ -2033,4 +2047,4 @@
 			console && console[type] && console[type]('fullPage: ' + text);
 		}
 	};
-})(jQuery);
+})(jQuery, window, document, Math);
